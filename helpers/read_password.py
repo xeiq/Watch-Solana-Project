@@ -1,5 +1,5 @@
 def read_password():
-    f = open("pass.txt", "r")
+    f = open("helpers/pass.txt", "r")
     lines = f.readlines()
     username = lines[0]
     password = lines[1]
