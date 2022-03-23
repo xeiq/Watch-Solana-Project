@@ -3,6 +3,11 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from pandas import DataFrame, read_sql
 from helpers.read_password import read_password
+from os import chdir
+from os.path import dirname
+from sys import argv
+
+chdir(dirname(argv[0]))
 
 username, password = read_password()
 engine = create_engine(
