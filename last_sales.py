@@ -10,6 +10,7 @@ from os import chdir
 from os.path import dirname
 from sys import argv
 
+chdir(dirname(argv[0]))
 
 http_client = Client("https://api.mainnet-beta.solana.com")
 
