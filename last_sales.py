@@ -10,7 +10,6 @@ from os import chdir
 from os.path import dirname
 from sys import argv
 
-chdir(dirname(argv[0]))
 
 http_client = Client("https://api.mainnet-beta.solana.com")
 
@@ -65,9 +64,12 @@ for project_info in projects_info:
                     transaction_details["blockTime"]
                 ).strftime("%Y-%m-%d %H:%M")
 
-                token_address = transaction_details["meta"]["postTokenBalances"][0][
-                    "mint"
-                ]
+                try:
+                    token_address = transaction_details["meta"]["postTokenBalances"][0][
+                        "mint"
+                    ]
+                except IndexError:
+                    break
 
                 _.append([transaction_signature, token_address, data_sell, price_sell])
 
