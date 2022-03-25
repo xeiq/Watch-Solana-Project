@@ -37,11 +37,11 @@ for project_info in projects_info:
 
         if len(last_quered_signature.transaction.index) > 0:
             signatures = http_client.get_signatures_for_address(
-                project_info["pub_key"], until=last_quered_signature.transaction.iloc[0]
+                pub_key, until=last_quered_signature.transaction.iloc[0]
             )["result"]
         else:
             signatures = http_client.get_signatures_for_address(
-                project_info["pub_key"]
+                pub_key
             )["result"]
 
         _ = []
@@ -90,5 +90,5 @@ for project_info in projects_info:
 
         df_sales = DataFrame(_, columns=["transaction", "token", "date_added", "price_sol"])
         df_sales["projects_id"] = project_info["id"]
-        df_sales["pub_key"] = project_info["id"]
+        df_sales["pub_key"] = pub_key
         df_sales.to_sql("projects_sales", if_exists="append", con=engine, index=False)
