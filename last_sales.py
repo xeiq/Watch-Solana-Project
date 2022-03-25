@@ -24,62 +24,71 @@ projects_info = read_sql(
 ).to_dict(orient="records")
 
 for project_info in projects_info:
-    last_quered_signature = read_sql(
-        f"""SELECT transaction FROM sol_nft.projects_sales WHERE projects_id = {project_info['id']} and date_added in (SELECT max(date_added) FROM sol_nft.projects_sales WHERE projects_id = {project_info['id']})""",
+    pub_keys = read_sql(
+        f"""SELECT pub_key FROM sol_nft.projects_pub_keys WHERE projects_id = {project_info['id']}""",
         con=engine,
-    )
+    )["pub_key"].tolist()
 
-    if len(last_quered_signature.transaction.index) > 0:
-        signatures = http_client.get_signatures_for_address(
-            project_info["pub_key"], until=last_quered_signature.transaction.iloc[0]
-        )["result"]
-    else:
-        signatures = http_client.get_signatures_for_address(project_info["pub_key"])[
-            "result"
-        ]
+    for pub_key in pub_keys:
+        last_quered_signature = read_sql(
+            f"""SELECT transaction FROM sol_nft.projects_sales WHERE projects_id = {project_info['id']} and pub_key = {pub_key} and date_added in (SELECT max(date_added) FROM sol_nft.projects_sales WHERE projects_id = {project_info['id']} and pub_key = {pub_key} )""",
+            con=engine,
+        )
 
-    _ = []
-    for signature in signatures:
-        while True:
-            transaction_signature = signature["signature"]
-            print(transaction_signature)
-            try:
-                transaction_details = http_client.get_transaction(
-                    transaction_signature
-                )["result"]
+        if len(last_quered_signature.transaction.index) > 0:
+            signatures = http_client.get_signatures_for_address(
+                project_info["pub_key"], until=last_quered_signature.transaction.iloc[0]
+            )["result"]
+        else:
+            signatures = http_client.get_signatures_for_address(
+                project_info["pub_key"]
+            )["result"]
 
-                price_sell = max(
-                    [
-                        (preBalance - postBalance) / 1000000000
-                        for (preBalance, postBalance) in zip(
-                            transaction_details["meta"]["preBalances"],
-                            transaction_details["meta"]["postBalances"],
-                        )
-                    ]
-                )
-
-                if price_sell < 0.008:
-                    break
-
-                data_sell = datetime.fromtimestamp(
-                    transaction_details["blockTime"]
-                ).strftime("%Y-%m-%d %H:%M")
-
+        _ = []
+        for signature in signatures:
+            while True:
+                transaction_signature = signature["signature"]
+                print(transaction_signature)
                 try:
-                    token_address = transaction_details["meta"]["postTokenBalances"][0][
-                        "mint"
-                    ]
-                except IndexError:
-                    break
+                    transaction_details = http_client.get_transaction(
+                        transaction_signature
+                    )["result"]
 
-                _.append([transaction_signature, token_address, data_sell, price_sell])
+                    price_sell = max(
+                        [
+                            (preBalance - postBalance) / 1000000000
+                            for (preBalance, postBalance) in zip(
+                                transaction_details["meta"]["preBalances"],
+                                transaction_details["meta"]["postBalances"],
+                            )
+                        ]
+                    )
 
-            except SolanaRpcException:
-                sleep(60)
-                continue
+                    if price_sell < 0.008:
+                        break
 
-            break
+                    data_sell = datetime.fromtimestamp(
+                        transaction_details["blockTime"]
+                    ).strftime("%Y-%m-%d %H:%M")
 
-    df_sales = DataFrame(_, columns=["transaction", "token", "date_added", "price_sol"])
-    df_sales["projects_id"] = project_info["id"]
-    df_sales.to_sql("projects_sales", if_exists="append", con=engine, index=False)
+                    try:
+                        token_address = transaction_details["meta"][
+                            "postTokenBalances"
+                        ][0]["mint"]
+                    except IndexError:
+                        break
+
+                    _.append(
+                        [transaction_signature, token_address, data_sell, price_sell]
+                    )
+
+                except SolanaRpcException:
+                    sleep(60)
+                    continue
+
+                break
+
+        df_sales = DataFrame(_, columns=["transaction", "token", "date_added", "price_sol"])
+        df_sales["projects_id"] = project_info["id"]
+        df_sales["pub_key"] = project_info["id"]
+        df_sales.to_sql("projects_sales", if_exists="append", con=engine, index=False)
