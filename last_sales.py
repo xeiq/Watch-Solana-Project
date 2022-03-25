@@ -31,7 +31,7 @@ for project_info in projects_info:
 
     for pub_key in pub_keys:
         last_quered_signature = read_sql(
-            f"""SELECT transaction FROM sol_nft.projects_sales WHERE projects_id = {project_info['id']} and pub_key = {pub_key} and date_added in (SELECT max(date_added) FROM sol_nft.projects_sales WHERE projects_id = {project_info['id']} and pub_key = {pub_key} )""",
+            f"""SELECT transaction FROM sol_nft.projects_sales WHERE projects_id = {project_info['id']} and pub_key = '{pub_key}' and date_added in (SELECT max(date_added) FROM sol_nft.projects_sales WHERE projects_id = {project_info['id']} and pub_key = '{pub_key}' )""",
             con=engine,
         )
 
